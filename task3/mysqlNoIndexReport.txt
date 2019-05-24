@@ -1,0 +1,151 @@
+MySQL queries without index fields
+
+1)
+SELECT * FROM task3A INNER JOIN task3B ON task3A.name = task3B.name;
++------+--------+------+--------+
+| id   | name   | id   | name   |
++------+--------+------+--------+
+|    1 | Pirate |    2 | Pirate |
+|    3 | Ninja  |    4 | Ninja  |
++------+--------+------+--------+
+2 rows in set (0.00 sec)
+
+explain SELECT * FROM task3A INNER JOIN task3B ON task3A.name = task3B.name;
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+| id | select_type | table  | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra                                              |
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+|  1 | SIMPLE      | task3A | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | NULL                                               |
+|  1 | SIMPLE      | task3B | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |    25.00 | Using where; Using join buffer (Block Nested Loop) |
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+2 rows in set, 1 warning (0.00 sec)
+
+2)
+SELECT * FROM task3A LEFT JOIN task3B ON task3A.name = task3B.name 
+UNION
+SELECT * FROM task3A RIGHT JOIN task3B ON task3A.name = task3B.name;
++------+-----------+------+-------------+
+| id   | name      | id   | name        |
++------+-----------+------+-------------+
+|    1 | Pirate    |    2 | Pirate      |
+|    3 | Ninja     |    4 | Ninja       |
+|    2 | Monkey    | NULL | NULL        |
+|    4 | Spaghetti | NULL | NULL        |
+| NULL | NULL      |    1 | Rutabaga    |
+| NULL | NULL      |    3 | Darth Vader |
++------+-----------+------+-------------+
+6 rows in set (0.00 sec)
+
+explain SELECT * FROM task3A LEFT JOIN task3B ON task3A.name = task3B.name  
+UNION 
+SELECT * FROM task3A RIGHT JOIN task3B ON task3A.name = task3B.name;
++----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+| id | select_type  | table      | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra                                              |
++----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+|  1 | PRIMARY      | task3A     | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | NULL                                               |
+|  1 | PRIMARY      | task3B     | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | Using where; Using join buffer (Block Nested Loop) |
+|  2 | UNION        | task3B     | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | NULL                                               |
+|  2 | UNION        | task3A     | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | Using where; Using join buffer (Block Nested Loop) |
+| NULL | UNION RESULT | <union1,2> | NULL       | ALL  | NULL          | NULL | NULL    | NULL | NULL |     NULL | Using temporary                                    |
++----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+5 rows in set, 1 warning (0.00 sec)
+
+3)
+SELECT * FROM task3A LEFT OUTER JOIN task3B ON task3A.name = task3B.name;
++------+-----------+------+--------+
+| id   | name      | id   | name   |
++------+-----------+------+--------+
+|    1 | Pirate    |    2 | Pirate |
+|    3 | Ninja     |    4 | Ninja  |
+|    2 | Monkey    | NULL | NULL   |
+|    4 | Spaghetti | NULL | NULL   |
++------+-----------+------+--------+
+4 rows in set (0.00 sec)
+
+explain SELECT * FROM task3A LEFT OUTER JOIN task3B ON task3A.name = task3B.name;
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+| id | select_type | table  | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra                                              |
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+|  1 | SIMPLE      | task3A | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | NULL                                               |
+|  1 | SIMPLE      | task3B | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | Using where; Using join buffer (Block Nested Loop) |
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+2 rows in set, 1 warning (0.00 sec)
+
+4)
+SELECT * FROM task3A LEFT OUTER JOIN task3B ON task3A.name = task3B.name WHERE task3B.id IS null;
++------+-----------+------+------+
+| id   | name      | id   | name |
++------+-----------+------+------+
+|    2 | Monkey    | NULL | NULL |
+|    4 | Spaghetti | NULL | NULL |
++------+-----------+------+------+
+2 rows in set (0.00 sec)
+
+explain SELECT * FROM task3A LEFT OUTER JOIN task3B ON task3A.name = task3B.name WHERE task3B.id IS null;
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+| id | select_type | table  | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra                                              |
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+|  1 | SIMPLE      | task3A | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | NULL                                               |
+|  1 | SIMPLE      | task3B | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |    25.00 | Using where; Using join buffer (Block Nested Loop) |
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+2 rows in set, 1 warning (0.00 sec)
+
+5)
+SELECT * FROM task3A LEFT JOIN task3B ON task3A.name = task3B.name WHERE task3A.id IS null OR task3B.id IS null
+UNION
+SELECT * FROM task3A RIGHT JOIN task3B ON task3A.name = task3B.name WHERE task3A.id IS null OR task3B.id IS null;
++------+-----------+------+-------------+
+| id   | name      | id   | name        |
++------+-----------+------+-------------+
+|    2 | Monkey    | NULL | NULL        |
+|    4 | Spaghetti | NULL | NULL        |
+| NULL | NULL      |    1 | Rutabaga    |
+| NULL | NULL      |    3 | Darth Vader |
++------+-----------+------+-------------+
+4 rows in set (0.00 sec)
+
+explain SELECT * FROM task3A LEFT JOIN task3B ON task3A.name = task3B.name WHERE task3A.id IS null OR task3B.id IS null
+UNION
+SELECT * FROM task3A RIGHT JOIN task3B ON task3A.name = task3B.name WHERE task3A.id IS null OR task3B.id IS null;
++----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+| id | select_type  | table      | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra                                              |
++----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+|  1 | PRIMARY      | task3A     | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | NULL                                               |
+|  1 | PRIMARY      | task3B     | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | Using where; Using join buffer (Block Nested Loop) |
+|  2 | UNION        | task3B     | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | NULL                                               |
+|  2 | UNION        | task3A     | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | Using where; Using join buffer (Block Nested Loop) |
+| NULL | UNION RESULT | <union1,2> | NULL       | ALL  | NULL          | NULL | NULL    | NULL | NULL |     NULL | Using temporary                                    |
++----+--------------+------------+------------+------+---------------+------+---------+------+------+----------+----------------------------------------------------+
+5 rows in set, 1 warning (0.00 sec)
+
+6)
+SELECT * FROM task3A CROSS JOIN task3B;
++------+-----------+------+-------------+
+| id   | name      | id   | name        |
++------+-----------+------+-------------+
+|    1 | Pirate    |    1 | Rutabaga    |
+|    2 | Monkey    |    1 | Rutabaga    |
+|    3 | Ninja     |    1 | Rutabaga    |
+|    4 | Spaghetti |    1 | Rutabaga    |
+|    1 | Pirate    |    2 | Pirate      |
+|    2 | Monkey    |    2 | Pirate      |
+|    3 | Ninja     |    2 | Pirate      |
+|    4 | Spaghetti |    2 | Pirate      |
+|    1 | Pirate    |    3 | Darth Vader |
+|    2 | Monkey    |    3 | Darth Vader |
+|    3 | Ninja     |    3 | Darth Vader |
+|    4 | Spaghetti |    3 | Darth Vader |
+|    1 | Pirate    |    4 | Ninja       |
+|    2 | Monkey    |    4 | Ninja       |
+|    3 | Ninja     |    4 | Ninja       |
+|    4 | Spaghetti |    4 | Ninja       |
++------+-----------+------+-------------+
+16 rows in set (0.00 sec)
+
+explain SELECT * FROM task3A CROSS JOIN task3B;
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+---------------------------------------+
+| id | select_type | table  | partitions | type | possible_keys | key  | key_len | ref  | rows | filtered | Extra                                 |
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+---------------------------------------+
+|  1 | SIMPLE      | task3A | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | NULL                                  |
+|  1 | SIMPLE      | task3B | NULL       | ALL  | NULL          | NULL | NULL    | NULL |    4 |   100.00 | Using join buffer (Block Nested Loop) |
++----+-------------+--------+------------+------+---------------+------+---------+------+------+----------+---------------------------------------+
+2 rows in set, 1 warning (0.00 sec)

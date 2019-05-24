@@ -1,0 +1,132 @@
+PostgreSQL queries without index fields
+
+1)
+SELECT * FROM task3A INNER JOIN task3B ON task3A.name = task3B.name;
+ id |  name  | id |  name
+----+--------+----+--------
+  1 | Pirate |  2 | Pirate
+  3 | Ninja  |  4 | Ninja
+(2 rows)
+
+explain SELECT * FROM task3A INNER JOIN task3B ON task3A.name = task3B.name;
+                              QUERY PLAN
+-----------------------------------------------------------------------
+ Hash Join  (cost=13.15..26.48 rows=140 width=1040)
+   Hash Cond: ((task3a.name)::text = (task3b.name)::text)
+   ->  Seq Scan on task3a  (cost=0.00..11.40 rows=140 width=520)
+   ->  Hash  (cost=11.40..11.40 rows=140 width=520)
+   ->  Seq Scan on task3b  (cost=0.00..11.40 rows=140 width=520)
+(5 rows)
+
+2)
+SELECT * FROM task3A FULL OUTER JOIN task3B ON task3A.name = task3B.name;
+ id |   name    | id |    name
+----+-----------+----+-------------
+  1 | Pirate    |  2 | Pirate
+  2 | Monkey    |    |
+  3 | Ninja     |  4 | Ninja
+  4 | Spaghetti |    |
+    |           |  3 | Darth Vader
+    |           |  1 | Rutabaga
+(6 rows)
+
+explain SELECT * FROM task3A FULL OUTER JOIN task3B ON task3A.name = task3B.name;
+                              QUERY PLAN
+-----------------------------------------------------------------------
+ Hash Full Join  (cost=13.15..26.48 rows=140 width=1040)
+   Hash Cond: ((task3a.name)::text = (task3b.name)::text)
+   ->  Seq Scan on task3a  (cost=0.00..11.40 rows=140 width=520)
+   ->  Hash  (cost=11.40..11.40 rows=140 width=520)
+   ->  Seq Scan on task3b  (cost=0.00..11.40 rows=140 width=520)
+(5 rows)
+
+3)
+SELECT * FROM task3A LEFT OUTER JOIN task3B ON task3A.name = task3B.name;
+ id |   name    | id |  name
+----+-----------+----+--------
+  1 | Pirate    |  2 | Pirate
+  2 | Monkey    |    |
+  3 | Ninja     |  4 | Ninja
+  4 | Spaghetti |    |
+(4 rows)
+
+explain SELECT * FROM task3A LEFT OUTER JOIN task3B ON task3A.name = task3B.name;
+                              QUERY PLAN
+-----------------------------------------------------------------------
+ Hash Left Join  (cost=13.15..26.48 rows=140 width=1040)
+   Hash Cond: ((task3a.name)::text = (task3b.name)::text)
+   ->  Seq Scan on task3a  (cost=0.00..11.40 rows=140 width=520)
+   ->  Hash  (cost=11.40..11.40 rows=140 width=520)
+   ->  Seq Scan on task3b  (cost=0.00..11.40 rows=140 width=520)
+(5 rows)
+
+4)
+SELECT * FROM task3A LEFT OUTER JOIN task3B ON task3A.name = task3B.name WHERE task3B.id IS null;
+ id |   name    | id | name
+----+-----------+----+------
+  2 | Monkey    |    |
+  4 | Spaghetti |    |
+(2 rows)
+
+explain SELECT * FROM task3A LEFT OUTER JOIN task3B ON task3A.name = task3B.name WHERE task3B.id IS null;
+                              QUERY PLAN
+-----------------------------------------------------------------------
+ Hash Left Join  (cost=13.15..26.48 rows=1 width=1040)
+   Hash Cond: ((task3a.name)::text = (task3b.name)::text)
+   Filter: (task3b.id IS NULL)
+   ->  Seq Scan on task3a  (cost=0.00..11.40 rows=140 width=520)
+   ->  Hash  (cost=11.40..11.40 rows=140 width=520)
+   ->  Seq Scan on task3b  (cost=0.00..11.40 rows=140 width=520)
+(6 rows)
+
+5)
+SELECT * FROM task3A FULL OUTER JOIN task3B ON task3A.name = task3B.name WHERE task3A.id IS null OR task3B.id IS null;
+ id |   name    | id |    name
+----+-----------+----+-------------
+  2 | Monkey    |    |
+  4 | Spaghetti |    |
+    |           |  3 | Darth Vader
+    |           |  1 | Rutabaga
+(4 rows)
+
+explain SELECT * FROM task3A FULL OUTER JOIN task3B ON task3A.name = task3B.name WHERE task3A.id IS null OR task3B.id IS null;
+                              QUERY PLAN
+-----------------------------------------------------------------------
+ Hash Full Join  (cost=13.15..26.48 rows=1 width=1040)
+   Hash Cond: ((task3a.name)::text = (task3b.name)::text)
+   Filter: ((task3a.id IS NULL) OR (task3b.id IS NULL))
+   ->  Seq Scan on task3a  (cost=0.00..11.40 rows=140 width=520)
+   ->  Hash  (cost=11.40..11.40 rows=140 width=520)
+   ->  Seq Scan on task3b  (cost=0.00..11.40 rows=140 width=520)
+(6 rows)
+
+6)
+SELECT * FROM task3A CROSS JOIN task3B;
+ id |   name    | id |    name
+----+-----------+----+-------------
+  1 | Pirate    |  1 | Rutabaga
+  1 | Pirate    |  2 | Pirate
+  1 | Pirate    |  3 | Darth Vader
+  1 | Pirate    |  4 | Ninja
+  2 | Monkey    |  1 | Rutabaga
+  2 | Monkey    |  2 | Pirate
+  2 | Monkey    |  3 | Darth Vader
+  2 | Monkey    |  4 | Ninja
+  3 | Ninja     |  1 | Rutabaga
+  3 | Ninja     |  2 | Pirate
+  3 | Ninja     |  3 | Darth Vader
+  3 | Ninja     |  4 | Ninja
+  4 | Spaghetti |  1 | Rutabaga
+  4 | Spaghetti |  2 | Pirate
+  4 | Spaghetti |  3 | Darth Vader
+  4 | Spaghetti |  4 | Ninja
+(16 rows)
+
+explain SELECT * FROM task3A CROSS JOIN task3B;
+                              QUERY PLAN
+-----------------------------------------------------------------------
+ Nested Loop  (cost=0.00..268.15 rows=19600 width=1040)
+   ->  Seq Scan on task3a  (cost=0.00..11.40 rows=140 width=520)
+   ->  Materialize  (cost=0.00..12.10 rows=140 width=520)
+   ->  Seq Scan on task3b  (cost=0.00..11.40 rows=140 width=520)
+(4 rows)
